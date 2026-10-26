@@ -58,6 +58,12 @@ pub enum Gesture {
         start: Point,
     },
     Crop,
+    /// Drawing the area of a rectangle or free selection over image `target`.
+    Area {
+        target: ObjectId,
+        points: Vec<Point>,
+        rect: bool,
+    },
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -89,6 +95,9 @@ pub struct App {
     pub text_edit: Option<TextEditing>,
     /// Polygon being drawn.
     pub polygon: Option<ObjectId>,
+    /// Piece cut out by an area selection, and the revision right after cutting it: if
+    /// nothing changed when it is let go, the cut is undone.
+    pub floating: Option<(ObjectId, u64)>,
     pub clipboard: Clipboard,
     pub dialog: Option<Dialog>,
     pub pending: Option<Pending>,
@@ -126,6 +135,7 @@ impl App {
             crop: CropState::default(),
             text_edit: None,
             polygon: None,
+            floating: None,
             clipboard: Clipboard::default(),
             dialog: None,
             pending: None,
@@ -482,6 +492,45 @@ impl App {
         self.tool = Tool::Select;
     }
 
+    /// Turns the selection into one locked image.
+    pub fn flatten_selection(&mut self) {
+        let ids = self.selection_in_order();
+        if ids.is_empty() {
+            return;
+        }
+        self.settle();
+        let name = t().kind_flattened;
+        let renderer = &mut self.renderer;
+        let id = self
+            .session
+            .edit(|d| crate::raster::flatten(d, renderer, &ids, name));
+        match id {
+            Some(id) => self.session.select_only(id),
+            None => self.session.revert_last(),
+        }
+    }
+
+    /// Lets go of the floating piece once it is no longer the only thing selected: if it
+    /// was not changed, the cut is undone and the image is whole again.
+    pub(crate) fn settle_floating(&mut self) {
+        let Some((id, revision)) = self.floating else {
+            return;
+        };
+        let still = self.session.selection.as_slice() == [id]
+            && matches!(
+                self.tool,
+                Tool::Select | Tool::RectSelect | Tool::FreeSelect
+            )
+            && self.doc().get(id).is_some();
+        if still {
+            return;
+        }
+        self.floating = None;
+        if self.session.revision() == revision {
+            self.session.revert_last();
+        }
+    }
+
     pub fn copy(&mut self, ctx: &egui::Context) -> bool {
         let ids = self.selection_in_order();
         if ids.is_empty() {
@@ -680,6 +729,9 @@ impl App {
         let cmd_shift = Modifiers::COMMAND | Modifiers::SHIFT;
         let pressed =
             |ctx: &egui::Context, m: Modifiers, k: Key| ctx.input_mut(|i| i.consume_key(m, k));
+        if pressed(ctx, cmd_shift, Key::F) {
+            self.flatten_selection();
+        }
         if pressed(ctx, cmd_shift, Key::S) {
             self.save(true);
         }
@@ -879,6 +931,7 @@ impl eframe::App for App {
         if idle {
             self.session.end_group();
         }
+        self.settle_floating();
         self.poll_export(ctx);
         self.update_title(ctx);
         self.handle_close(ctx);

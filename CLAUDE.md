@@ -24,4 +24,6 @@ Editor de imágenes tipo Paint en Rust; todo lo dibujado son objetos editables.
 - `history.rs`: `Session` con deshacer por instantáneas; los cambios continuos usan
   `edit_grouped(clave)` y se cierran en `logic()` cuando no hay botón apretado ni foco.
 - `tools/`: herramientas del lienzo; `ui/`: paneles y diálogos; `canvas.rs`: vista y textura.
+- `raster.rs`: operaciones de píxeles (`flatten`, `lift` para selección rectangular/libre).
+  El fondo del lienzo es siempre un color sólido; no hay capa raster de fondo.
 - `file_format.rs` (`.paint1`), `export.rs` (formatos y límite de tamaño), `clipboard.rs`.

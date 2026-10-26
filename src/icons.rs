@@ -56,6 +56,10 @@ pub const ARROW: &str = "\u{E06A}"; // arrow-line-up-right
 pub const TEXT: &str = "\u{E48A}"; // text-t
 pub const CROP: &str = "\u{E1D4}"; // crop
 pub const EYEDROPPER: &str = "\u{E568}"; // eyedropper
+pub const RECT_SELECT: &str = "\u{E69A}"; // selection
+pub const FREE_SELECT: &str = "\u{EDC6}"; // lasso
+pub const REGULAR_POLYGON: &str = "\u{E2AE}"; // hexagon
+pub const FLATTEN: &str = "\u{E468}"; // stack-simple
 
 // Transform.
 pub const ROTATE_LEFT: &str = "\u{E038}"; // arrow-counter-clockwise

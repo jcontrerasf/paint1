@@ -30,6 +30,16 @@ impl App {
                 }
             }
         }
+        if !ids.is_empty() {
+            ui.separator();
+            if ui
+                .button(format!("{} {}", icons::FLATTEN, t.flatten))
+                .on_hover_text(t.flatten_help)
+                .clicked()
+            {
+                self.flatten_selection();
+            }
+        }
     }
 
     fn canvas_properties(&mut self, ui: &mut Ui) {
@@ -385,6 +395,22 @@ impl App {
                         edit(self, "prop:head", &|k| {
                             if let Kind::Arrow { head, .. } = k {
                                 *head = h;
+                            }
+                        });
+                    }
+                });
+            }
+            Kind::RegularPolygon { sides, .. } => {
+                ui.horizontal(|ui| {
+                    ui.label(t.sides);
+                    let mut n = *sides;
+                    if ui
+                        .add(DragValue::new(&mut n).range(crate::document::SIDES))
+                        .changed()
+                    {
+                        edit(self, "prop:sides", &|k| {
+                            if let Kind::RegularPolygon { sides, .. } = k {
+                                *sides = n;
                             }
                         });
                     }

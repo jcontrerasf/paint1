@@ -87,6 +87,7 @@ pub fn kind_icon(o: &Object) -> &'static str {
         Kind::Rect { .. } => icons::RECT,
         Kind::Ellipse { .. } => icons::ELLIPSE,
         Kind::Polygon { .. } => icons::POLYGON,
+        Kind::RegularPolygon { .. } => icons::REGULAR_POLYGON,
         Kind::Text { .. } => icons::TEXT,
         Kind::Image { .. } => icons::IMAGE,
     }
@@ -105,6 +106,7 @@ pub fn kind_name(o: &Object) -> &'static str {
         Kind::Rect { .. } => t.kind_rect,
         Kind::Ellipse { .. } => t.kind_ellipse,
         Kind::Polygon { .. } => t.kind_polygon,
+        Kind::RegularPolygon { .. } => t.kind_regular_polygon,
         Kind::Text { .. } => t.kind_text,
         Kind::Image { .. } => t.kind_image,
     }

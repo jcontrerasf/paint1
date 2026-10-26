@@ -88,6 +88,10 @@ impl App {
                     .suffix(" px"),
             );
         }
+        if tool == Tool::RegularPolygon {
+            ui.label(t.sides);
+            ui.add(egui::DragValue::new(&mut self.style.sides).range(crate::document::SIDES));
+        }
         if tool == Tool::Arrow {
             ui.label(t.head);
             ui.add(
@@ -194,6 +198,15 @@ impl App {
         .clicked()
         {
             self.fit_canvas_to_selection();
+        }
+        if theme::icon_button(
+            ui,
+            icons::FLATTEN,
+            &format!("{} · {}", t.flatten, t.flatten_help),
+        )
+        .clicked()
+        {
+            self.flatten_selection();
         }
         ui.separator();
         if let Some((c, secondary)) = palette_row(ui) {

@@ -97,6 +97,11 @@ pub enum Kind {
         points: Vec<Point>,
         closed: bool,
     },
+    /// Regular polygon stretched to fill `(0, 0)..size`.
+    RegularPolygon {
+        sides: u32,
+        size: Size,
+    },
     Text {
         content: String,
         size: f64,
@@ -143,7 +148,10 @@ impl Object {
     /// Can this object have a fill?
     pub fn can_fill(&self) -> bool {
         match &self.kind {
-            Kind::Rect { .. } | Kind::Ellipse { .. } | Kind::Text { .. } => true,
+            Kind::Rect { .. }
+            | Kind::Ellipse { .. }
+            | Kind::RegularPolygon { .. }
+            | Kind::Text { .. } => true,
             Kind::Polygon { closed, .. } => *closed,
             _ => false,
         }
@@ -155,9 +163,10 @@ impl Object {
             Kind::Stroke { points, .. } | Kind::Polygon { points, .. } => points_rect(points),
             Kind::Line { a, b } => Rect::from_points(*a, *b),
             Kind::Arrow { a, b, .. } => Rect::from_points(*a, *b),
-            Kind::Rect { size, .. } | Kind::Ellipse { size } | Kind::Image { size, .. } => {
-                size.to_rect()
-            }
+            Kind::Rect { size, .. }
+            | Kind::Ellipse { size }
+            | Kind::RegularPolygon { size, .. }
+            | Kind::Image { size, .. } => size.to_rect(),
             Kind::Text {
                 content,
                 size,
@@ -174,6 +183,11 @@ impl Object {
             Kind::Arrow { head, .. } => arrow_head(*head, self.style.width).max(half),
             Kind::Stroke { mode, .. } => stroke_width(*mode, self.style.width) / 2.0,
             Kind::Text { .. } | Kind::Image { .. } => 0.0,
+            // Sharp (miter) corners reach past half the width.
+            Kind::Rect { radius, .. } if *radius <= 0.0 => half * std::f64::consts::SQRT_2,
+            Kind::RegularPolygon { sides, .. } => {
+                half / (std::f64::consts::PI / *sides.max(&3) as f64).cos()
+            }
             _ => half,
         }
     }
@@ -222,7 +236,10 @@ impl Object {
                 *b = Point::new(b.x * sx, b.y * sy);
                 true
             }
-            Kind::Rect { size, .. } | Kind::Ellipse { size } | Kind::Image { size, .. } => {
+            Kind::Rect { size, .. }
+            | Kind::Ellipse { size }
+            | Kind::RegularPolygon { size, .. }
+            | Kind::Image { size, .. } => {
                 *size = Size::new(size.width * sx, size.height * sy);
                 true
             }
@@ -289,20 +306,57 @@ impl Object {
                 }
             }
             Kind::Polygon { points, closed } => {
-                let mut on_edge = near_polyline(points, local, half);
-                if *closed && points.len() > 2 {
-                    on_edge |= dist_segment(local, points[points.len() - 1], points[0]) <= half;
-                    if self.style.fill.is_some() {
-                        on_edge |= point_in_polygon(points, local);
-                    }
-                }
-                on_edge
+                hit_polygon(points, *closed, self.style.fill.is_some(), local, half)
             }
+            Kind::RegularPolygon { sides, size } => hit_polygon(
+                &regular_points(*sides, *size),
+                true,
+                self.style.fill.is_some(),
+                local,
+                half,
+            ),
             Kind::Text { .. } | Kind::Image { .. } => {
                 self.local_rect().inflate(tol, tol).contains(local)
             }
         }
     }
+}
+
+fn hit_polygon(points: &[Point], closed: bool, filled: bool, p: Point, half: f64) -> bool {
+    let mut on_edge = near_polyline(points, p, half);
+    if closed && points.len() > 2 {
+        on_edge |= dist_segment(p, points[points.len() - 1], points[0]) <= half;
+        if filled {
+            on_edge |= point_in_polygon(points, p);
+        }
+    }
+    on_edge
+}
+
+/// Allowed number of sides of a regular polygon.
+pub const SIDES: std::ops::RangeInclusive<u32> = 3..=12;
+
+/// Vertices of a regular polygon, the first at the top (even counts are turned half a step
+/// so they sit on a flat side), stretched so their bounds are exactly `(0, 0)..size`.
+pub fn regular_points(sides: u32, size: Size) -> Vec<Point> {
+    let n = sides.clamp(*SIDES.start(), *SIDES.end());
+    let step = std::f64::consts::TAU / n as f64;
+    let start = -std::f64::consts::FRAC_PI_2 + if n.is_multiple_of(2) { step / 2.0 } else { 0.0 };
+    let unit: Vec<Point> = (0..n)
+        .map(|i| {
+            let a = start + step * i as f64;
+            Point::new(a.cos(), a.sin())
+        })
+        .collect();
+    let b = points_rect(&unit);
+    unit.iter()
+        .map(|p| {
+            Point::new(
+                (p.x - b.x0) / b.width() * size.width,
+                (p.y - b.y0) / b.height() * size.height,
+            )
+        })
+        .collect()
 }
 
 /// Actual width of a freehand stroke (the highlighter is wider).
@@ -396,6 +450,10 @@ impl Document {
         let id = self.next_id;
         self.next_id += 1;
         id
+    }
+
+    pub fn index_of(&self, id: ObjectId) -> Option<usize> {
+        self.objects.iter().position(|o| o.id == id)
     }
 
     pub fn get(&self, id: ObjectId) -> Option<&Object> {
@@ -632,7 +690,29 @@ mod tests {
         d.crop(b);
         let r = d.objects[0].bounds();
         assert!(r.x0.abs() < 1.0 && r.y0.abs() < 1.0);
-        assert_eq!((d.width, d.height), (54, 24));
+        // The miter corners reach half the width times √2 past the rect.
+        assert_eq!((d.width, d.height), (56, 26));
+    }
+
+    #[test]
+    fn regular_polygon_fills_its_box() {
+        for n in SIDES {
+            let pts = regular_points(n, Size::new(100.0, 50.0));
+            assert_eq!(pts.len(), n as usize);
+            let b = points_rect(&pts);
+            assert!(b.x0.abs() < 1e-9 && b.y0.abs() < 1e-9, "{n}");
+            assert!(
+                (b.x1 - 100.0).abs() < 1e-9 && (b.y1 - 50.0).abs() < 1e-9,
+                "{n}"
+            );
+        }
+        // A square is axis-aligned: its corners are the corners of the box.
+        let sq = regular_points(4, Size::new(10.0, 10.0));
+        assert!(
+            sq.iter()
+                .all(|p| (p.x.abs() < 1e-9 || (p.x - 10.0).abs() < 1e-9)
+                    && (p.y.abs() < 1e-9 || (p.y - 10.0).abs() < 1e-9))
+        );
     }
 
     #[test]

@@ -1,5 +1,6 @@
 //! Tools of the canvas: what a click or a drag does.
 
+pub mod area;
 pub mod crop;
 pub mod draw;
 pub mod select;
@@ -15,12 +16,15 @@ use crate::icons;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tool {
     Select,
+    RectSelect,
+    FreeSelect,
     Pencil,
     Highlighter,
     Eraser,
     Rect,
     RoundRect,
     Ellipse,
+    RegularPolygon,
     Line,
     Arrow,
     Polygon,
@@ -31,8 +35,10 @@ pub enum Tool {
 
 impl Tool {
     /// In the order of the toolbar; `None` is a separator.
-    pub const BAR: [Option<Tool>; 16] = [
+    pub const BAR: [Option<Tool>; 19] = [
         Some(Tool::Select),
+        Some(Tool::RectSelect),
+        Some(Tool::FreeSelect),
         None,
         Some(Tool::Pencil),
         Some(Tool::Highlighter),
@@ -41,6 +47,7 @@ impl Tool {
         Some(Tool::Rect),
         Some(Tool::RoundRect),
         Some(Tool::Ellipse),
+        Some(Tool::RegularPolygon),
         Some(Tool::Polygon),
         Some(Tool::Line),
         Some(Tool::Arrow),
@@ -53,6 +60,9 @@ impl Tool {
     pub fn icon(self) -> &'static str {
         match self {
             Tool::Select => icons::SELECT,
+            Tool::RectSelect => icons::RECT_SELECT,
+            Tool::FreeSelect => icons::FREE_SELECT,
+            Tool::RegularPolygon => icons::REGULAR_POLYGON,
             Tool::Pencil => icons::PENCIL,
             Tool::Highlighter => icons::HIGHLIGHTER,
             Tool::Eraser => icons::ERASER,
@@ -72,6 +82,9 @@ impl Tool {
         let t = t();
         match self {
             Tool::Select => t.tool_select,
+            Tool::RectSelect => t.tool_rect_select,
+            Tool::FreeSelect => t.tool_free_select,
+            Tool::RegularPolygon => t.tool_regular_polygon,
             Tool::Pencil => t.tool_pencil,
             Tool::Highlighter => t.tool_highlighter,
             Tool::Eraser => t.tool_eraser,
@@ -92,8 +105,14 @@ impl Tool {
         let t = t();
         match self {
             Tool::Select => t.hint_select,
+            Tool::RectSelect | Tool::FreeSelect => t.hint_area,
             Tool::Pencil | Tool::Highlighter | Tool::Eraser => t.hint_draw,
-            Tool::Rect | Tool::RoundRect | Tool::Ellipse | Tool::Line | Tool::Arrow => t.hint_shape,
+            Tool::Rect
+            | Tool::RoundRect
+            | Tool::Ellipse
+            | Tool::RegularPolygon
+            | Tool::Line
+            | Tool::Arrow => t.hint_shape,
             Tool::Polygon => t.hint_polygon,
             Tool::Text => t.hint_text,
             Tool::Crop => t.hint_crop,
@@ -104,6 +123,9 @@ impl Tool {
     pub fn shortcut(key: Key) -> Option<Tool> {
         Some(match key {
             Key::V => Tool::Select,
+            Key::S => Tool::RectSelect,
+            Key::F => Tool::FreeSelect,
+            Key::N => Tool::RegularPolygon,
             Key::P => Tool::Pencil,
             Key::H => Tool::Highlighter,
             Key::E => Tool::Eraser,
@@ -124,7 +146,12 @@ impl Tool {
     pub fn uses_fill(self) -> bool {
         matches!(
             self,
-            Tool::Rect | Tool::RoundRect | Tool::Ellipse | Tool::Polygon | Tool::Text
+            Tool::Rect
+                | Tool::RoundRect
+                | Tool::Ellipse
+                | Tool::RegularPolygon
+                | Tool::Polygon
+                | Tool::Text
         )
     }
 }
@@ -143,6 +170,7 @@ pub struct ToolStyle {
     pub eraser_width: f64,
     pub radius: f64,
     pub head: f64,
+    pub sides: u32,
     pub font_size: f64,
     pub bold: bool,
     pub align: TextAlign,
@@ -161,6 +189,7 @@ impl Default for ToolStyle {
             eraser_width: 20.0,
             radius: 16.0,
             head: 18.0,
+            sides: 6,
             font_size: 32.0,
             bold: false,
             align: TextAlign::Left,

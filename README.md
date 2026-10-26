@@ -10,8 +10,10 @@ recolorear, ocultar, bloquear, renombrar o reordenar después.
 | Tecla | Herramienta |
 |---|---|
 | V | Seleccionar (mover, escalar con las manijas, girar con el círculo; Shift: proporcional / 15°) |
+| S / F | Selección rectangular y libre (estilo Paint) sobre la imagen seleccionada: el trozo se mueve, escala o gira; si no lo cambias, vuelve a su lugar |
 | P / H / E | Lápiz, resaltador, goma (la goma también es un objeto) |
 | R / U / O | Rectángulo, rectángulo redondeado, elipse (Shift: cuadrado / círculo) |
+| N | Polígono regular de 3 a 12 lados |
 | G | Polígono (clic agrega puntos; doble clic, Enter o clic en el primero termina) |
 | L / A | Línea y flecha (Shift: múltiplos de 45°) |
 | T | Texto (se escribe directo en el lienzo) |
@@ -21,7 +23,11 @@ recolorear, ocultar, bloquear, renombrar o reordenar después.
 Además: rotar 90°/180°, espejo horizontal/vertical y escalar (a la selección o, si no hay, a
 toda la imagen), tamaño del lienzo, **ajustar lienzo a la selección**, cortar/copiar/pegar
 (los objetos copiados se pegan editables; una imagen o texto de otro programa se pega como
-objeto), duplicar, deshacer/rehacer.
+objeto), duplicar, deshacer/rehacer y **aplanar** (Ctrl+Shift+F): lo seleccionado se
+convierte en una sola imagen, bloqueada, sobre la que funcionan las selecciones de área.
+
+Los objetos que quedan fuera del lienzo se siguen viendo (atenuados) y se pueden recuperar;
+no salen al exportar.
 
 Atajos: Ctrl+N/O/S, Ctrl+Shift+S, Ctrl+E (exportar), Ctrl+Z / Ctrl+Y, Ctrl+X/C/V/D, Ctrl+A,
 Supr, flechas (Shift: 10 px), Ctrl+0 (ajustar vista), Ctrl +/−. Rueda: zoom; botón del medio,

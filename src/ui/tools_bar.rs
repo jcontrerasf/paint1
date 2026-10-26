@@ -1,6 +1,6 @@
 //! Column of tools on the left.
 
-use eframe::egui::Ui;
+use eframe::egui::{self, Ui};
 
 use crate::app::App;
 use crate::i18n::t;
@@ -10,6 +10,12 @@ use crate::tools::Tool;
 
 impl App {
     pub(crate) fn tools_bar(&mut self, ui: &mut Ui) {
+        egui::ScrollArea::vertical()
+            .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+            .show(ui, |ui| self.tool_buttons(ui));
+    }
+
+    fn tool_buttons(&mut self, ui: &mut Ui) {
         ui.vertical_centered(|ui| {
             ui.spacing_mut().item_spacing.y = 4.0;
             for tool in Tool::BAR {

@@ -209,6 +209,12 @@ impl Renderer {
                     fill_and_stroke(pm, &path, o, opacity, LineJoin::Round, ts);
                 }
             }
+            Kind::RegularPolygon { sides, size } => {
+                let points = crate::document::regular_points(*sides, *size);
+                if let Some(path) = polyline(&points, true) {
+                    fill_and_stroke(pm, &path, o, opacity, LineJoin::Miter, ts);
+                }
+            }
             Kind::Polygon { points, closed } => {
                 if let Some(path) = polyline(points, *closed) {
                     if *closed && let Some(fill) = st.fill {

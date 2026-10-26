@@ -81,6 +81,10 @@ impl App {
                 radius: self.style.radius,
             },
             Tool::Ellipse => Kind::Ellipse { size: Size::ZERO },
+            Tool::RegularPolygon => Kind::RegularPolygon {
+                sides: self.style.sides,
+                size: Size::ZERO,
+            },
             Tool::Line => Kind::Line {
                 a: Point::ZERO,
                 b: Point::ZERO,
@@ -118,7 +122,9 @@ impl App {
                         points.push(p);
                     }
                 }
-                Kind::Rect { size, .. } | Kind::Ellipse { size } => {
+                Kind::Rect { size, .. }
+                | Kind::Ellipse { size }
+                | Kind::RegularPolygon { size, .. } => {
                     let mut d = p - start;
                     if shift {
                         let side = d.x.abs().max(d.y.abs());

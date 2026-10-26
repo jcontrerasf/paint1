@@ -90,6 +90,16 @@ impl Session {
         }
     }
 
+    /// Drops the last change as if it never happened (no redo step).
+    pub fn revert_last(&mut self) {
+        self.group = None;
+        if let Some(prev) = self.undo.pop() {
+            self.doc = prev;
+            self.revision += 1;
+            self.prune_selection();
+        }
+    }
+
     pub fn can_undo(&self) -> bool {
         !self.undo.is_empty()
     }
@@ -157,5 +167,10 @@ mod tests {
         s.edit_grouped("h", |d| d.height = 5);
         s.cancel_group();
         assert_eq!(s.doc().height, 10);
+        let before = s.doc().clone();
+        s.edit(|d| d.width = 99);
+        s.revert_last();
+        assert_eq!(s.doc(), &before);
+        assert!(!s.can_redo());
     }
 }

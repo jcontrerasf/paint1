@@ -158,6 +158,18 @@ mod tests {
             Style::default(),
             Affine::rotate(0.3).then_translate((10.0, 10.0).into()),
         ));
+        let id = doc.new_id();
+        let mut locked = Object::new(
+            id,
+            Kind::RegularPolygon {
+                sides: 7,
+                size: kurbo::Size::new(30.0, 20.0),
+            },
+            Style::default(),
+            Affine::translate((-15.0, 5.0)),
+        );
+        locked.locked = true;
+        doc.objects.push(locked);
         let mut buf = Cursor::new(Vec::new());
         write(&doc, &mut buf).unwrap();
         buf.set_position(0);

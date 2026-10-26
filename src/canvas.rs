@@ -135,6 +135,25 @@ impl App {
             self.draw_checker(ui, &painter, doc_rect.intersect(resp.rect));
         }
         self.draw_document(ui, &painter);
+        // Veil over what lies outside the canvas: it is not part of the image.
+        let veil = p.backdrop.gamma_multiply(0.7);
+        let r = resp.rect;
+        for part in [
+            Rect::from_min_max(r.min, egui::pos2(r.max.x, doc_rect.top())),
+            Rect::from_min_max(egui::pos2(r.min.x, doc_rect.bottom()), r.max),
+            Rect::from_min_max(
+                egui::pos2(r.min.x, doc_rect.top()),
+                egui::pos2(doc_rect.left(), doc_rect.bottom()),
+            ),
+            Rect::from_min_max(
+                egui::pos2(doc_rect.right(), doc_rect.top()),
+                egui::pos2(r.max.x, doc_rect.bottom()),
+            ),
+        ] {
+            if part.is_positive() {
+                painter.rect_filled(part.intersect(r), 0.0, veil);
+            }
+        }
         painter.rect_stroke(
             doc_rect,
             0.0,
@@ -147,6 +166,7 @@ impl App {
             match self.tool {
                 Tool::Select => self.select_tool(ui, &resp),
                 Tool::Crop => self.crop_tool(ui, &resp),
+                Tool::RectSelect | Tool::FreeSelect => self.area_tool(ui, &resp),
                 Tool::Text => self.text_tool(ui, &resp),
                 Tool::Polygon => self.polygon_tool(ui, &resp),
                 Tool::Eyedropper => self.eyedropper_tool(ui, &resp),
@@ -160,6 +180,14 @@ impl App {
                     CursorIcon::Grab
                 }
                 Tool::Select | Tool::Crop => self.hover_cursor(&resp),
+                Tool::RectSelect | Tool::FreeSelect
+                    if self.floating.is_some() && !self.session.selection.is_empty() =>
+                {
+                    match self.hover_cursor(&resp) {
+                        CursorIcon::Default => CursorIcon::Crosshair,
+                        c => c,
+                    }
+                }
                 Tool::Text => CursorIcon::Text,
                 _ => CursorIcon::Crosshair,
             };
@@ -169,6 +197,7 @@ impl App {
         let painter = painter.with_clip_rect(resp.rect);
         self.draw_selection(&painter);
         self.draw_marquee(&painter);
+        self.draw_area(&painter);
         self.draw_polygon_hint(&painter);
         self.draw_text_caret(&painter);
         if self.tool == Tool::Crop {
@@ -236,7 +265,16 @@ impl App {
     fn draw_document(&mut self, ui: &Ui, painter: &egui::Painter) {
         let ppp = ui.ctx().pixels_per_point();
         let doc = self.session.doc();
-        let full = kurbo::Rect::new(0.0, 0.0, doc.width as f64, doc.height as f64);
+        // Objects outside the canvas are shown too (dimmed afterwards).
+        let full = doc
+            .objects
+            .iter()
+            .filter(|o| o.visible)
+            .map(|o| o.bounds())
+            .fold(
+                kurbo::Rect::new(0.0, 0.0, doc.width as f64, doc.height as f64),
+                |a, b| a.union(b),
+            );
         let a = self.view.to_doc(self.view.rect.min);
         let b = self.view.to_doc(self.view.rect.max);
         let visible =

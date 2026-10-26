@@ -15,6 +15,7 @@ mod history;
 mod i18n;
 mod icons;
 mod prefs;
+mod raster;
 mod render;
 mod text;
 mod theme;

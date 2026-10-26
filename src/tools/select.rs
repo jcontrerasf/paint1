@@ -76,6 +76,11 @@ impl App {
             .map(TransformKind::Scale)
     }
 
+    /// Is the screen point on a handle of the selection?
+    pub(crate) fn grab_handle(&self, pos: Pos2) -> bool {
+        self.grab_at(pos).is_some()
+    }
+
     pub(crate) fn hover_cursor(&self, resp: &egui::Response) -> CursorIcon {
         let Some(pos) = resp.hover_pos() else {
             return CursorIcon::Default;
@@ -153,7 +158,7 @@ impl App {
         }
     }
 
-    fn begin_select_drag(&mut self, start_screen: Pos2, shift: bool) {
+    pub(crate) fn begin_select_drag(&mut self, start_screen: Pos2, shift: bool) {
         let start = self.view.to_doc(start_screen);
         if let Some((id, a, b)) = self.selected_ends()
             && (a.distance(start_screen) <= GRAB || b.distance(start_screen) <= GRAB)
@@ -203,7 +208,7 @@ impl App {
         };
     }
 
-    fn update_select_drag(&mut self, pos: Pos2, shift: bool) {
+    pub(crate) fn update_select_drag(&mut self, pos: Pos2, shift: bool) {
         let p = self.view.to_doc(pos);
         match &self.gesture {
             Gesture::Transform {
@@ -253,7 +258,7 @@ impl App {
         }
     }
 
-    fn end_select_drag(&mut self) {
+    pub(crate) fn end_select_drag(&mut self) {
         if let Gesture::Marquee {
             start,
             end,
