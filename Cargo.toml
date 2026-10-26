@@ -1,0 +1,27 @@
+[package]
+name = "paint1"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+authors = ["Julio Contreras"]
+description = "Simple Paint-like image editor where everything you draw stays editable"
+
+[dependencies]
+ab_glyph = "0.2.32"
+eframe = { version = "0.37", features = ["persistence"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "bmp", "gif", "tiff"] }
+kurbo = { version = "0.13.1", features = ["serde"] }
+rfd = "0.17.2"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.154", features = ["float_roundtrip"] }
+tiny-skia = "0.12.0"
+webp = { version = "0.3.1", default-features = false }
+zip = { version = "9.1.2", default-features = false, features = ["deflate"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+
+[profile.dev.package."*"]
+opt-level = 2

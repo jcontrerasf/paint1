@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- paint1: a canvas with stacked editable shapes and a pencil. -->
+  <rect x="32" y="32" width="448" height="448" rx="96" fill="#2f6bf0"/>
+  <rect x="96" y="104" width="320" height="304" rx="28" fill="#ffffff"/>
+  <circle cx="200" cy="216" r="64" fill="#ffd01f"/>
+  <rect x="216" y="232" width="136" height="112" rx="14" fill="#e02f2f" fill-opacity="0.9"/>
+  <path d="M136 360 L208 300" stroke="#1f2126" stroke-width="18" stroke-linecap="round"/>
+  <g transform="rotate(45 380 160)">
+    <rect x="356" y="40" width="48" height="190" rx="10" fill="#1f2126"/>
+    <path d="M356 230 L404 230 L380 276 Z" fill="#f2c79b"/>
+    <path d="M372 260 L388 260 L380 276 Z" fill="#1f2126"/>
+  </g>
+</svg>

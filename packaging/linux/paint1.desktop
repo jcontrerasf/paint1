@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=paint1
+GenericName=Image Editor
+GenericName[es]=Editor de imágenes
+Comment=Simple image editor where everything you draw stays editable
+Comment[es]=Editor de imágenes simple donde todo lo dibujado se puede volver a editar
+Exec=paint1 %f
+Icon=paint1
+Terminal=false
+Categories=Graphics;RasterGraphics;2DGraphics;
+MimeType=image/png;image/jpeg;image/webp;image/bmp;image/gif;image/tiff;
+StartupWMClass=paint1
