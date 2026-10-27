@@ -1,0 +1,101 @@
+# Genera los paquetes. Con un tag `vX.Y.Z` además publica un Release en GitHub;
+# a mano (workflow_dispatch) solo deja los paquetes como artefactos de la ejecución.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  version:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        name: Versión (y que el tag coincida con Cargo.toml)
+        run: |
+          version=$(sed -n '/^\[package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml)
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "v$version" ]]; then
+            echo "::error::El tag $GITHUB_REF_NAME no coincide con la versión $version de Cargo.toml"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  linux:
+    needs: version
+    # La glibc de 22.04 es vieja: el AppImage corre también en distros anteriores.
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # libfuse2: para ejecutar linuxdeploy, que es a su vez un AppImage.
+      - name: Dependencias del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbcommon-dev libwayland-dev libxcb-render0-dev \
+            libxcb-shape0-dev libxcb-xfixes0-dev libfuse2
+      - run: cargo build --release --locked
+      - name: AppImage
+        env:
+          OUTPUT: paint1-${{ env.VERSION }}-x86_64.AppImage
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir \
+            --executable target/release/paint1 \
+            --desktop-file packaging/linux/paint1.desktop \
+            --icon-file assets/paint1.svg \
+            --output appimage
+          mkdir -p paquetes
+          mv "$OUTPUT" paquetes/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: paquetes/*
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked
+      - name: Portable (.zip)
+        shell: pwsh
+        run: |
+          $dir = "paint1-$env:VERSION"
+          New-Item -ItemType Directory -Force $dir, paquetes | Out-Null
+          Copy-Item target\release\paint1.exe $dir\paint1.exe
+          Compress-Archive -Path $dir -DestinationPath "paquetes\paint1-$env:VERSION-windows-portable.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: paquetes/*
+
+  publicar:
+    if: github.ref_type == 'tag'
+    needs: [linux, windows]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: paquetes
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: paquetes/*
+          generate_release_notes: true

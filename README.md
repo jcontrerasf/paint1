@@ -1,9 +1,15 @@
-# paint1
+<p align="center">
+  <img src="assets/paint1.svg" alt="" width="96">
+</p>
+
+<h1 align="center">paint1</h1>
 
 Editor de imágenes simple inspirado en Paint, hecho en Rust (egui + tiny-skia). A diferencia
 de Paint, todo lo que se dibuja (trazos, formas, flechas, texto, imágenes) queda como un
 **objeto editable** en el panel de la derecha: se puede elegir, mover, escalar, girar,
 recolorear, ocultar, bloquear, renombrar o reordenar después.
+
+![paint1 con varios objetos en el lienzo y el panel de objetos a la derecha](docs/captura.jpg)
 
 ## Herramientas
 
@@ -16,7 +22,7 @@ recolorear, ocultar, bloquear, renombrar o reordenar después.
 | N | Polígono regular de 3 a 12 lados |
 | G | Polígono (clic agrega puntos; doble clic, Enter o clic en el primero termina) |
 | L / A | Línea y flecha (Shift: múltiplos de 45°) |
-| T | Texto (se escribe directo en el lienzo) |
+| T | Texto: se escribe directo en el lienzo (flechas, Inicio/Fin y clic mueven el cursor); negrita, cursiva, subrayado, cualquier fuente del sistema y cuadro de fondo con margen |
 | C | Recortar: libre, 1:1, 4:3, 3:2, 16:9, 3:4, 2:3, 9:16, 4:5 o tamaño exacto en px |
 | I | Cuentagotas (Shift+clic: color de relleno) |
 
@@ -24,7 +30,7 @@ Además: rotar 90°/180°, espejo horizontal/vertical y escalar (a la selección
 toda la imagen), tamaño del lienzo, **ajustar lienzo a la selección**, cortar/copiar/pegar
 (los objetos copiados se pegan editables; una imagen o texto de otro programa se pega como
 objeto), duplicar, deshacer/rehacer y **aplanar** (Ctrl+Shift+F): lo seleccionado se
-convierte en una sola imagen, bloqueada, sobre la que funcionan las selecciones de área.
+convierte en una sola imagen, sobre la que funcionan las selecciones de área.
 
 Los objetos que quedan fuera del lienzo se siguen viendo (atenuados) y se pueden recuperar;
 no salen al exportar.
