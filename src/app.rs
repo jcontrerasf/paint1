@@ -492,7 +492,7 @@ impl App {
         self.tool = Tool::Select;
     }
 
-    /// Turns the selection into one locked image.
+    /// Turns the selection into one image.
     pub fn flatten_selection(&mut self) {
         let ids = self.selection_in_order();
         if ids.is_empty() {
@@ -773,7 +773,8 @@ impl App {
         {
             self.delete_selection();
         }
-        if pressed(ctx, Modifiers::NONE, Key::Escape) {
+        // With a color picker open, Esc only closes it.
+        if !egui::Popup::is_any_open(ctx) && pressed(ctx, Modifiers::NONE, Key::Escape) {
             self.escape();
         }
         if pressed(ctx, Modifiers::NONE, Key::Enter) {

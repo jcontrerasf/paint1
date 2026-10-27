@@ -11,7 +11,7 @@ use crate::document::{Document, Kind, Object, ObjectId, Style};
 use crate::render::{Job, Renderer, to_image};
 
 /// Replaces the visible objects among `ids` with one image of how they look together,
-/// placed where the topmost of them was in the stacking order. The image is locked.
+/// placed where the topmost of them was in the stacking order.
 pub fn flatten(
     doc: &mut Document,
     renderer: &mut Renderer,
@@ -51,7 +51,6 @@ pub fn flatten(
         Style::default(),
         Affine::translate(region.origin().to_vec2()),
     );
-    o.locked = true;
     o.name = name.to_string();
     doc.objects.insert(top + 1, o);
     doc.objects.retain(|o| !ids.contains(&o.id));
@@ -195,7 +194,7 @@ mod tests {
         let ids: Vec<ObjectId> = d.objects.iter().map(|o| o.id).collect();
         let id = flatten(&mut d, &mut Renderer::default(), &ids, "x").unwrap();
         assert_eq!(d.objects.len(), 1);
-        assert!(d.get(id).unwrap().locked);
+        assert!(!d.get(id).unwrap().locked);
         let after = render_document(&d, 1.0).unwrap();
         // Same up to rounding: half-transparent edge pixels pass through straight alpha.
         let off = before

@@ -9,8 +9,8 @@ pub mod tools_bar;
 pub mod top_bar;
 
 use eframe::egui::{
-    self, Align, Color32, Layout, Response, Sense, Stroke, Ui, UiBuilder, Vec2, color_picker,
-    ecolor::Hsva,
+    self, Align, Color32, Id, Layout, Popup, PopupCloseBehavior, Response, RichText, Sense, Stroke,
+    Ui, UiBuilder, Vec2, color_picker, ecolor::Hsva,
 };
 
 use crate::document::{Kind, Object, Rgba, StrokeMode};
@@ -43,18 +43,120 @@ pub fn color32(c: Rgba) -> Color32 {
     Color32::from_rgba_unmultiplied(r, g, b, a)
 }
 
-/// Swatch that opens a color picker (with transparency). True if the color changed.
+/// Where the color button with an open picker announces itself to the canvas: its popup id
+/// and the pass it was last shown in.
+const PICK_TARGET: &str = "pick_target";
+/// A color taken on the canvas for the button with that popup id.
+const PICKED: &str = "picked_color";
+
+/// Popup id of the color picker that is open now, if any: while it is, clicking the canvas
+/// takes a color for it instead of using the tool.
+pub fn pick_target(ctx: &egui::Context) -> Option<Id> {
+    let (id, pass) = ctx.data(|d| d.get_temp::<(Id, u64)>(Id::unique(PICK_TARGET)))?;
+    (pass + 1 >= ctx.cumulative_pass_nr() && Popup::is_id_open(ctx, id)).then_some(id)
+}
+
+/// Hands a color taken on the canvas to the picker `target`.
+pub fn send_picked(ctx: &egui::Context, target: Id, color: Rgba) {
+    ctx.data_mut(|d| d.insert_temp(Id::unique(PICKED), (target, color)));
+    ctx.request_repaint();
+}
+
+/// Swatch that opens a color picker (with transparency). While it is open, clicking the
+/// canvas takes the color under the pointer; Ok or Esc closes it. True if the color changed.
 pub fn color_button(ui: &mut Ui, color: &mut Rgba, help: &str) -> bool {
-    let mut hsva = Hsva::from_srgba_unmultiplied(color.0);
-    let resp = color_picker::color_edit_button_hsva(ui, &mut hsva, color_picker::Alpha::OnlyBlend)
-        .on_hover_text(help);
-    let new = Rgba(hsva.to_srgba_unmultiplied());
-    if resp.changed() && new != *color {
+    let popup_id = ui.auto_id_with("color_popup");
+    let ctx = ui.ctx().clone();
+    let open = Popup::is_id_open(&ctx, popup_id);
+    let resp = color_swatch(ui, *color, open).on_hover_text(help);
+    let mut new = *color;
+    let picked = ctx.data_mut(|d| {
+        let key = Id::unique(PICKED);
+        match d.get_temp::<(Id, Rgba)>(key) {
+            Some((id, c)) if id == popup_id => {
+                d.remove::<(Id, Rgba)>(key);
+                Some(c)
+            }
+            _ => None,
+        }
+    });
+    if let Some(c) = picked {
+        new = c;
+    }
+    let mut hsva = Hsva::from_srgba_unmultiplied(new.0);
+    let mut confirmed = false;
+    Popup::menu(&resp)
+        .id(popup_id)
+        .close_behavior(PopupCloseBehavior::IgnoreClicks)
+        .show(|ui| {
+            // Read the pass first: `ctx` must not be locked twice.
+            let pass = ctx.cumulative_pass_nr();
+            ctx.data_mut(|d| d.insert_temp(Id::unique(PICK_TARGET), (popup_id, pass)));
+            ui.spacing_mut().slider_width = 275.0;
+            if color_picker::color_picker_hsva_2d(ui, &mut hsva, color_picker::Alpha::OnlyBlend) {
+                new = Rgba(hsva.to_srgba_unmultiplied());
+            }
+            ui.label(
+                RichText::new(format!("{} {}", icons::EYEDROPPER, t().pick_hint))
+                    .color(pal().text_soft),
+            );
+            ui.horizontal(|ui| confirmed = ui.button(t().ok).clicked());
+        });
+    if confirmed {
+        Popup::close_id(&ctx, popup_id);
+    }
+    if new != *color {
         *color = new;
         true
     } else {
         false
     }
+}
+
+/// The button of `color_button`: the color, half of it opaque when it is translucent.
+fn color_swatch(ui: &mut Ui, color: Rgba, open: bool) -> Response {
+    let (rect, resp) = ui.allocate_exact_size(ui.spacing().interact_size, Sense::click());
+    if ui.is_rect_visible(rect) {
+        let p = pal();
+        let visuals = if open {
+            &ui.visuals().widgets.open
+        } else {
+            ui.style().interact(&resp)
+        };
+        let painter = ui.painter();
+        let inner = rect.shrink(1.0);
+        let c = color32(color);
+        if color.0[3] < 255 {
+            painter.rect_filled(inner, 0.0, p.checker.0);
+            let half = inner.height() / 2.0;
+            let mut x = inner.left();
+            let mut i = 0;
+            while x < inner.right() {
+                let top = if i % 2 == 0 {
+                    inner.top()
+                } else {
+                    inner.top() + half
+                };
+                let cell = egui::Rect::from_min_size(egui::pos2(x, top), Vec2::splat(half))
+                    .intersect(inner);
+                painter.rect_filled(cell, 0.0, p.checker.1);
+                x += half;
+                i += 1;
+            }
+            let (left, right) = inner.split_left_right_at_fraction(0.5);
+            painter.rect_filled(left, 0.0, c);
+            painter.rect_filled(right, 0.0, c.to_opaque());
+        } else {
+            painter.rect_filled(inner, 0.0, c);
+        }
+        painter.rect_stroke(
+            rect,
+            visuals.corner_radius,
+            Stroke::new(1.0, if open { p.text } else { p.border }),
+            egui::StrokeKind::Inside,
+        );
+    }
+    resp
 }
 
 /// Row of quick colors: what was clicked, and whether with the secondary button.

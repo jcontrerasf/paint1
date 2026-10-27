@@ -162,7 +162,10 @@ impl App {
         );
 
         self.pointer_doc = resp.hover_pos().map(|pos| self.view.to_doc(pos));
-        if !matches!(self.gesture, Gesture::Pan) {
+        let picking = crate::ui::pick_target(ui.ctx());
+        if let Some(target) = picking {
+            self.pick_for(ui, &resp, target);
+        } else if !matches!(self.gesture, Gesture::Pan) {
             match self.tool {
                 Tool::Select => self.select_tool(ui, &resp),
                 Tool::Crop => self.crop_tool(ui, &resp),
@@ -176,6 +179,7 @@ impl App {
         if resp.hovered() {
             let cursor = match self.tool {
                 _ if matches!(self.gesture, Gesture::Pan) => CursorIcon::Grabbing,
+                _ if picking.is_some() => CursorIcon::Crosshair,
                 _ if ui.input(|i| i.key_down(egui::Key::Space)) && self.text_edit.is_none() => {
                     CursorIcon::Grab
                 }
@@ -360,6 +364,20 @@ impl App {
                 "{} #{r:02x}{g:02x}{b:02x}",
                 crate::i18n::t().sampled
             ));
+        }
+    }
+
+    /// Takes the color under the pointer for the color picker that is open.
+    fn pick_for(&mut self, ui: &Ui, resp: &egui::Response, target: egui::Id) {
+        if !resp.clicked() {
+            return;
+        }
+        let Some(pos) = resp.interact_pointer_pos() else {
+            return;
+        };
+        let p = self.view.to_doc(pos);
+        if let Some(c) = self.renderer.sample(self.session.doc(), p) {
+            crate::ui::send_picked(ui.ctx(), target, c);
         }
     }
 }
