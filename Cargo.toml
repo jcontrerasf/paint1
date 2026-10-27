@@ -20,6 +20,29 @@ ttf-parser = "0.25"
 webp = { version = "0.3.1", default-features = false }
 zip = { version = "9.1.2", default-features = false, features = ["deflate"] }
 
+[package.metadata.deb]
+name = "paint1"
+maintainer = "Julio Contreras"
+section = "graphics"
+extended-description = """\
+Editor de imágenes simple inspirado en Paint donde todo lo dibujado (trazos, formas, flechas, \
+texto, imágenes) queda como un objeto editable. Guarda proyectos .paint1 y exporta a PNG, \
+JPEG, WebP, BMP, GIF y TIFF."""
+depends = "$auto"
+recommends = "xdg-desktop-portal"
+assets = [
+    ["target/release/paint1", "usr/bin/", "755"],
+    ["packaging/linux/paint1.desktop", "usr/share/applications/", "644"],
+    ["assets/paint1.svg", "usr/share/icons/hicolor/scalable/apps/paint1.svg", "644"],
+    ["assets/paint1-16.png", "usr/share/icons/hicolor/16x16/apps/paint1.png", "644"],
+    ["assets/paint1-32.png", "usr/share/icons/hicolor/32x32/apps/paint1.png", "644"],
+    ["assets/paint1-48.png", "usr/share/icons/hicolor/48x48/apps/paint1.png", "644"],
+    ["assets/paint1-64.png", "usr/share/icons/hicolor/64x64/apps/paint1.png", "644"],
+    ["assets/paint1-128.png", "usr/share/icons/hicolor/128x128/apps/paint1.png", "644"],
+    ["assets/paint1-256.png", "usr/share/icons/hicolor/256x256/apps/paint1.png", "644"],
+    ["assets/paint1-512.png", "usr/share/icons/hicolor/512x512/apps/paint1.png", "644"],
+]
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

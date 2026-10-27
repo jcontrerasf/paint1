@@ -51,6 +51,19 @@ derecho o Espacio + arrastrar: mover la vista.
 
 Interfaz en español o inglés y tema claro, oscuro o del sistema (menú ☰).
 
+## Instalar
+
+En [Releases](https://github.com/jcontrerasf/paint1/releases) hay:
+
+- **Linux**: `.deb` (Debian, Ubuntu y derivadas: `sudo apt install ./paint1_*.deb`) o
+  AppImage (cualquier distro: darle permiso de ejecución y abrirlo).
+- **Windows**: `.zip` portable con `paint1.exe`.
+- **macOS** (Apple Silicon e Intel): `.dmg`; arrastrar paint1 a Aplicaciones. No está firmado
+  por Apple, así que la primera vez macOS lo bloquea: en macOS 15 o posterior, intentar
+  abrirlo y luego ir a Ajustes del Sistema → Privacidad y seguridad → **Abrir igualmente**; en
+  versiones anteriores, clic derecho → Abrir. También sirve ejecutar
+  `xattr -dr com.apple.quarantine /Applications/paint1.app`.
+
 ## Compilar
 
 ```sh
