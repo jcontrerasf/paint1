@@ -8,8 +8,8 @@ use crate::document::{Document, Kind, Object, StrokeMode, TextAlign};
 use crate::i18n::{fill, t};
 use crate::icons;
 use crate::theme::{self, pal};
-use crate::ui::color_button;
 use crate::ui::dialogs::Dialog;
+use crate::ui::{color_button, font_picker};
 
 impl App {
     pub(crate) fn properties(&mut self, ui: &mut Ui) {
@@ -297,6 +297,10 @@ impl App {
                 size,
                 bold,
                 align,
+                italic,
+                underline,
+                font,
+                margin,
             } => {
                 ui.label(t.content);
                 let mut text = content.clone();
@@ -314,6 +318,17 @@ impl App {
                         }
                     });
                 }
+                ui.horizontal(|ui| {
+                    ui.label(t.font);
+                    let mut f = font.clone();
+                    if font_picker(ui, "prop_font", &mut f) {
+                        edit(self, "prop:font", &|k| {
+                            if let Kind::Text { font, .. } = k {
+                                font.clone_from(&f);
+                            }
+                        });
+                    }
+                });
                 ui.horizontal(|ui| {
                     ui.label(t.font_size);
                     let mut s = *size;
@@ -333,6 +348,28 @@ impl App {
                             }
                         });
                     }
+                    if o.style.fill.is_some() {
+                        ui.label(t.margin);
+                        let mut px = margin * size;
+                        if ui
+                            .add(
+                                DragValue::new(&mut px)
+                                    .range(0.0..=1000.0)
+                                    .speed(0.5)
+                                    .suffix(" px")
+                                    .max_decimals(1),
+                            )
+                            .changed()
+                        {
+                            edit(self, "prop:margin", &|k| {
+                                if let Kind::Text { size, margin, .. } = k {
+                                    *margin = px / *size;
+                                }
+                            });
+                        }
+                    }
+                });
+                ui.horizontal(|ui| {
                     if theme::toggle(ui, *bold, icons::BOLD, t.bold).clicked() {
                         let b = !*bold;
                         edit(self, "prop:bold", &|k| {
@@ -341,6 +378,23 @@ impl App {
                             }
                         });
                     }
+                    if theme::toggle(ui, *italic, icons::ITALIC, t.italic).clicked() {
+                        let v = !*italic;
+                        edit(self, "prop:italic", &|k| {
+                            if let Kind::Text { italic, .. } = k {
+                                *italic = v;
+                            }
+                        });
+                    }
+                    if theme::toggle(ui, *underline, icons::UNDERLINE, t.underline).clicked() {
+                        let v = !*underline;
+                        edit(self, "prop:underline", &|k| {
+                            if let Kind::Text { underline, .. } = k {
+                                *underline = v;
+                            }
+                        });
+                    }
+                    ui.separator();
                     for (al, ico, help) in [
                         (TextAlign::Left, icons::ALIGN_LEFT, t.align_left),
                         (TextAlign::Center, icons::ALIGN_CENTER, t.align_center),

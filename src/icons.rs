@@ -74,6 +74,8 @@ pub const SELECT_ALL: &str = "\u{E746}"; // selection-all
 
 // Text.
 pub const BOLD: &str = "\u{E5BE}"; // text-b
+pub const ITALIC: &str = "\u{E5C0}"; // text-italic
+pub const UNDERLINE: &str = "\u{E5C4}"; // text-underline
 pub const ALIGN_LEFT: &str = "\u{E484}"; // text-align-left
 pub const ALIGN_CENTER: &str = "\u{E480}"; // text-align-center
 pub const ALIGN_RIGHT: &str = "\u{E486}"; // text-align-right

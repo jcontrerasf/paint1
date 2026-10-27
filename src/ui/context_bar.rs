@@ -9,7 +9,7 @@ use crate::icons;
 use crate::theme::{self, pal};
 use crate::tools::Tool;
 use crate::tools::crop::Aspect;
-use crate::ui::{color_button, palette_row};
+use crate::ui::{color_button, font_picker, palette_row};
 
 impl App {
     pub(crate) fn context_bar(&mut self, ui: &mut Ui) {
@@ -51,6 +51,7 @@ impl App {
         }
         ui.separator();
         if tool == Tool::Text {
+            font_picker(ui, "ctx_font", &mut self.style.font);
             ui.label(t.font_size);
             ui.add(
                 egui::DragValue::new(&mut self.style.font_size)
@@ -58,8 +59,30 @@ impl App {
                     .speed(0.5)
                     .suffix(" px"),
             );
+            if self.style.fill_on {
+                ui.label(t.margin);
+                let mut px = self.style.text_margin * self.style.font_size;
+                if ui
+                    .add(
+                        egui::DragValue::new(&mut px)
+                            .range(0.0..=1000.0)
+                            .speed(0.5)
+                            .suffix(" px")
+                            .max_decimals(1),
+                    )
+                    .changed()
+                {
+                    self.style.text_margin = px / self.style.font_size;
+                }
+            }
             if theme::toggle(ui, self.style.bold, icons::BOLD, t.bold).clicked() {
                 self.style.bold = !self.style.bold;
+            }
+            if theme::toggle(ui, self.style.italic, icons::ITALIC, t.italic).clicked() {
+                self.style.italic = !self.style.italic;
+            }
+            if theme::toggle(ui, self.style.underline, icons::UNDERLINE, t.underline).clicked() {
+                self.style.underline = !self.style.underline;
             }
             for (align, ico, help) in [
                 (TextAlign::Left, icons::ALIGN_LEFT, t.align_left),
@@ -130,19 +153,14 @@ impl App {
             && let Some(id) = self.text_edit.as_ref().map(|e| e.id)
         {
             let style = self.style.for_tool(Tool::Text);
-            let (size, bold, align) = (self.style.font_size, self.style.bold, self.style.align);
+            let bar = self.style.clone();
             self.session.edit_grouped("text", |d| {
-                if let Some(o) = d.get_mut(id) {
+                if let Some(o) = d.get_mut(id)
+                    && let Kind::Text { content, .. } = &mut o.kind
+                {
+                    let content = std::mem::take(content);
                     o.style = style;
-                    if let Kind::Text {
-                        size: s,
-                        bold: b,
-                        align: a,
-                        ..
-                    } = &mut o.kind
-                    {
-                        (*s, *b, *a) = (size, bold, align);
-                    }
+                    o.kind = bar.text_kind(&content);
                 }
             });
         }

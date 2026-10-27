@@ -174,6 +174,16 @@ mod tests {
                 points: vec![Point::new(0.0, 0.0), Point::new(80.0, 70.0)],
                 mode: StrokeMode::Eraser,
             },
+            Kind::Text {
+                content: "dj".into(),
+                size: 20.0,
+                bold: false,
+                align: crate::document::TextAlign::Left,
+                italic: true,
+                underline: false,
+                font: String::new(),
+                margin: 0.6,
+            },
         ]
         .into_iter()
         .enumerate()

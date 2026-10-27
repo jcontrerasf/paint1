@@ -9,7 +9,7 @@ pub mod text;
 use eframe::egui::Key;
 use serde::{Deserialize, Serialize};
 
-use crate::document::{Rgba, Style, TextAlign};
+use crate::document::{DEFAULT_TEXT_MARGIN, Kind, Rgba, Style, TextAlign};
 use crate::i18n::t;
 use crate::icons;
 
@@ -173,6 +173,12 @@ pub struct ToolStyle {
     pub sides: u32,
     pub font_size: f64,
     pub bold: bool,
+    pub italic: bool,
+    pub underline: bool,
+    /// Installed font family; empty = the bundled Inter.
+    pub font: String,
+    /// Margin of the text box, as a fraction of the font size.
+    pub text_margin: f64,
     pub align: TextAlign,
 }
 
@@ -192,12 +198,30 @@ impl Default for ToolStyle {
             sides: 6,
             font_size: 32.0,
             bold: false,
+            italic: false,
+            underline: false,
+            font: String::new(),
+            text_margin: DEFAULT_TEXT_MARGIN,
             align: TextAlign::Left,
         }
     }
 }
 
 impl ToolStyle {
+    /// A new text with the look of the bar.
+    pub fn text_kind(&self, content: &str) -> Kind {
+        Kind::Text {
+            content: content.to_string(),
+            size: self.font_size,
+            bold: self.bold,
+            align: self.align,
+            italic: self.italic,
+            underline: self.underline,
+            font: self.font.clone(),
+            margin: self.text_margin,
+        }
+    }
+
     /// Style of a new object made with `tool`.
     pub fn for_tool(&self, tool: Tool) -> Style {
         let (stroke, width) = match tool {

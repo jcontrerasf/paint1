@@ -107,11 +107,52 @@ pub enum Kind {
         size: f64,
         bold: bool,
         align: TextAlign,
+        #[serde(default)]
+        italic: bool,
+        #[serde(default)]
+        underline: bool,
+        /// Installed font family; empty = the bundled Inter.
+        #[serde(default)]
+        font: String,
+        /// Space around the text in its box, as a fraction of `size` (so it scales with it).
+        #[serde(default = "default_text_margin")]
+        margin: f64,
     },
     Image {
         asset: AssetId,
         size: Size,
     },
+}
+
+pub const DEFAULT_TEXT_MARGIN: f64 = 0.2;
+
+fn default_text_margin() -> f64 {
+    DEFAULT_TEXT_MARGIN
+}
+
+impl Kind {
+    /// How a text is laid out (`None` for the other kinds).
+    pub fn text_look(&self) -> Option<text::TextLook<'_>> {
+        match self {
+            Kind::Text {
+                size,
+                bold,
+                align,
+                italic,
+                underline,
+                font,
+                ..
+            } => Some(text::TextLook {
+                family: font,
+                size: *size,
+                bold: *bold,
+                italic: *italic,
+                underline: *underline,
+                align: *align,
+            }),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -167,12 +208,9 @@ impl Object {
             | Kind::Ellipse { size }
             | Kind::RegularPolygon { size, .. }
             | Kind::Image { size, .. } => size.to_rect(),
-            Kind::Text {
-                content,
-                size,
-                bold,
-                ..
-            } => text::measure(content, *size, *bold).to_rect(),
+            Kind::Text { content, .. } => {
+                text::measure(content, &self.kind.text_look().unwrap()).to_rect()
+            }
         }
     }
 
@@ -182,13 +220,39 @@ impl Object {
         match &self.kind {
             Kind::Arrow { head, .. } => arrow_head(*head, self.style.width).max(half),
             Kind::Stroke { mode, .. } => stroke_width(*mode, self.style.width) / 2.0,
-            Kind::Text { .. } | Kind::Image { .. } => 0.0,
+            Kind::Text {
+                size,
+                italic,
+                margin,
+                ..
+            } => {
+                // Glyphs may reach a bit past their advances (more so slanted).
+                let ink = size * if *italic { 0.25 } else { 0.05 };
+                let fill = if self.style.fill.is_some() {
+                    size * margin
+                } else {
+                    0.0
+                };
+                ink.max(fill)
+            }
+            Kind::Image { .. } => 0.0,
             // Sharp (miter) corners reach past half the width.
             Kind::Rect { radius, .. } if *radius <= 0.0 => half * std::f64::consts::SQRT_2,
             Kind::RegularPolygon { sides, .. } => {
                 half / (std::f64::consts::PI / *sides.max(&3) as f64).cos()
             }
             _ => half,
+        }
+    }
+
+    /// Box of a text in local coordinates: the text plus its margin when the box is filled.
+    pub fn text_box(&self) -> Rect {
+        let r = self.local_rect();
+        match &self.kind {
+            Kind::Text { size, margin, .. } if self.style.fill.is_some() => {
+                r.inflate(size * margin, size * margin)
+            }
+            _ => r,
         }
     }
 
@@ -315,9 +379,8 @@ impl Object {
                 local,
                 half,
             ),
-            Kind::Text { .. } | Kind::Image { .. } => {
-                self.local_rect().inflate(tol, tol).contains(local)
-            }
+            Kind::Text { .. } => self.text_box().inflate(tol, tol).contains(local),
+            Kind::Image { .. } => self.local_rect().inflate(tol, tol).contains(local),
         }
     }
 }

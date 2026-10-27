@@ -154,6 +154,10 @@ mod tests {
                 size: 24.0,
                 bold: true,
                 align: TextAlign::Center,
+                italic: true,
+                underline: true,
+                font: "DejaVu Serif".into(),
+                margin: 0.5,
             },
             Style::default(),
             Affine::rotate(0.3).then_translate((10.0, 10.0).into()),
@@ -175,5 +179,13 @@ mod tests {
         buf.set_position(0);
         let back = read(buf).unwrap();
         assert_eq!(back, doc);
+    }
+
+    #[test]
+    fn old_texts_load_with_defaults() {
+        let json = r#"{"Text":{"content":"Hola","size":20.0,"bold":false,"align":"Left"}}"#;
+        let kind: Kind = serde_json::from_str(json).unwrap();
+        let look = kind.text_look().unwrap();
+        assert!(!look.italic && !look.underline && look.family.is_empty());
     }
 }

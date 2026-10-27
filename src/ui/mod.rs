@@ -176,6 +176,49 @@ pub fn palette_row(ui: &mut Ui) -> Option<(Rgba, bool)> {
     picked
 }
 
+/// Font family picker: the bundled Inter (empty name) or any installed family, with a search
+/// box above the list. Returns whether `font` changed.
+pub fn font_picker(ui: &mut Ui, id_salt: &str, font: &mut String) -> bool {
+    let t = t();
+    let before = font.clone();
+    let shown = if font.is_empty() {
+        t.font_default.to_string()
+    } else {
+        font.clone()
+    };
+    let search_id = Id::unique((id_salt, "font_search"));
+    egui::ComboBox::from_id_salt(id_salt)
+        .selected_text(shown)
+        .width(170.0)
+        .height(320.0)
+        .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
+        .show_ui(ui, |ui| {
+            let mut query: String = ui.data(|d| d.get_temp(search_id)).unwrap_or_default();
+            let r = ui.add(egui::TextEdit::singleline(&mut query).hint_text(t.font_search));
+            if !r.has_focus() && ui.memory(|m| m.focused().is_none()) {
+                r.request_focus();
+            }
+            if r.changed() {
+                ui.data_mut(|d| d.insert_temp(search_id, query.clone()));
+            }
+            let mut pick = |ui: &mut Ui, name: &str, label: &str| {
+                if ui.selectable_label(*font == name, label).clicked() {
+                    *font = name.to_string();
+                    ui.close();
+                }
+            };
+            pick(ui, "", t.font_default);
+            let q = query.to_lowercase();
+            for name in crate::text::families()
+                .iter()
+                .filter(|n| n.to_lowercase().contains(&q))
+            {
+                pick(ui, name, name);
+            }
+        });
+    *font != before
+}
+
 pub fn kind_icon(o: &Object) -> &'static str {
     match &o.kind {
         Kind::Stroke { mode, .. } => match mode {

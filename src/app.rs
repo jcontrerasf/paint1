@@ -118,6 +118,7 @@ impl App {
             .and_then(|s| eframe::get_value(s, prefs::KEY))
             .unwrap_or_default();
         i18n::set_lang(prefs.lang);
+        crate::text::warm_up();
         theme::install(&cc.egui_ctx, prefs.theme);
         cc.egui_ctx.options_mut(|o| o.zoom_with_keyboard = false);
         cc.egui_ctx.set_zoom_factor(prefs.ui_zoom.clamp(0.5, 3.0));
@@ -586,24 +587,14 @@ impl App {
         }
         self.settle();
         let style = self.style.for_tool(Tool::Text);
-        let (size, bold, align) = (self.style.font_size, self.style.bold, self.style.align);
+        let kind = self.style.text_kind(text);
         let id = self.session.edit(|d| {
-            let m = crate::text::measure(text, size, bold);
+            let m = crate::text::measure(text, &kind.text_look().unwrap());
             let at = Point::new(
                 ((d.width as f64 - m.width) / 2.0).round(),
                 ((d.height as f64 - m.height) / 2.0).round(),
             );
-            add_object(
-                d,
-                Kind::Text {
-                    content: text.to_string(),
-                    size,
-                    bold,
-                    align,
-                },
-                style,
-                kurbo::Affine::translate(at.to_vec2()),
-            )
+            add_object(d, kind, style, kurbo::Affine::translate(at.to_vec2()))
         });
         self.session.select_only(id);
         self.tool = Tool::Select;
@@ -864,15 +855,6 @@ pub fn add_object(
     let id = d.new_id();
     d.objects.push(Object::new(id, kind, style, transform));
     id
-}
-
-pub fn default_text_kind(style: &ToolStyle) -> Kind {
-    Kind::Text {
-        content: String::new(),
-        size: style.font_size,
-        bold: style.bold,
-        align: style.align,
-    }
 }
 
 fn load_image(path: &Path) -> Result<image::RgbaImage, String> {

@@ -226,27 +226,25 @@ impl Renderer {
                     }
                 }
             }
-            Kind::Text {
-                content,
-                size,
-                bold,
-                align,
-            } => {
+            Kind::Text { content, .. } => {
+                let look = o.kind.text_look().unwrap();
                 if let Some(fill) = st.fill {
-                    let m = text::measure(content, *size, *bold);
-                    let pad = (*size * 0.2) as f32;
-                    if let Some(path) = tiny_skia::Rect::from_xywh(
-                        -pad,
-                        -pad,
-                        m.width as f32 + 2.0 * pad,
-                        m.height as f32 + 2.0 * pad,
+                    let b = o.text_box();
+                    if let Some(path) = tiny_skia::Rect::from_ltrb(
+                        b.x0 as f32,
+                        b.y0 as f32,
+                        b.x1 as f32,
+                        b.y1 as f32,
                     )
                     .map(PathBuilder::from_rect)
                     {
                         pm.fill_path(&path, &solid(fill, opacity), FillRule::Winding, ts, None);
                     }
                 }
-                if let Some(path) = text::path(content, *size, *bold, *align) {
+                for path in [text::path(content, &look), text::underline(content, &look)]
+                    .into_iter()
+                    .flatten()
+                {
                     pm.fill_path(
                         &path,
                         &solid(st.stroke, opacity),
