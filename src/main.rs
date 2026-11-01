@@ -36,6 +36,7 @@ fn main() -> eframe::Result {
             .with_inner_size([1280.0, 800.0])
             .with_min_inner_size([720.0, 480.0])
             .with_drag_and_drop(true),
+        wgpu_options: wgpu_options(),
         ..Default::default()
     };
     eframe::run_native(
@@ -43,4 +44,19 @@ fn main() -> eframe::Result {
         options,
         Box::new(move |cc| Ok(Box::new(app::App::new(cc, initial)))),
     )
+}
+
+/// On Windows wgpu tries Vulkan first, and some Vulkan drivers/layers crash with an access
+/// violation while creating the window. DX12 (with GL as fallback) is always available on
+/// Windows 10/11. `WGPU_BACKEND` still takes precedence.
+fn wgpu_options() -> eframe::egui_wgpu::WgpuConfiguration {
+    let mut opts = eframe::egui_wgpu::WgpuConfiguration::default();
+    if cfg!(windows)
+        && std::env::var_os("WGPU_BACKEND").is_none()
+        && let eframe::egui_wgpu::WgpuSetup::CreateNew(setup) = &mut opts.wgpu_setup
+    {
+        setup.instance_descriptor.backends =
+            eframe::wgpu::Backends::DX12 | eframe::wgpu::Backends::GL;
+    }
+    opts
 }

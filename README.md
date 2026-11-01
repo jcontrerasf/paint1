@@ -57,7 +57,9 @@ En [Releases](https://github.com/jcontrerasf/paint1/releases) hay:
 
 - **Linux**: `.deb` (Debian, Ubuntu y derivadas: `sudo apt install ./paint1_*.deb`) o
   AppImage (cualquier distro: darle permiso de ejecución y abrirlo).
-- **Windows**: `.zip` portable con `paint1.exe`.
+- **Windows**: `.zip` portable con `paint1.exe`. Usa DX12 (con OpenGL de respaldo) en lugar
+  de Vulkan, porque algunos drivers Vulkan cierran la app al crear la ventana; se puede forzar
+  otro backend con la variable `WGPU_BACKEND` (`vulkan`, `dx12`, `gl`).
 - **macOS** (Apple Silicon e Intel): `.dmg`; arrastrar paint1 a Aplicaciones. No está firmado
   por Apple, así que la primera vez macOS lo bloquea: en macOS 15 o posterior, intentar
   abrirlo y luego ir a Ajustes del Sistema → Privacidad y seguridad → **Abrir igualmente**; en
